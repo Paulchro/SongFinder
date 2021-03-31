@@ -2,10 +2,13 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace SongFinder
@@ -87,19 +90,92 @@ namespace SongFinder
     {
         public static async Task Main(string[] args)
         {
-            int i = 0;
+            Dictionary<int, string> dict = new Dictionary<int, string>();
+            int i = 1;
             Console.WriteLine("Welcome to my song finder");
-            Console.WriteLine("Type part of a song you want to search for");
+            Console.WriteLine("Type part of a song you want to search for\n");
             string query = Console.ReadLine();
-            var json = new WebClient().DownloadString("https://api.musixmatch.com/ws/1.1/track.search?q_lyrics=searchlyrics&apikey={Apikey}&".Replace("searchlyrics",query));
+            var json = new WebClient().DownloadString("https://api.musixmatch.com/ws/1.1/track.search?q_lyrics=searchlyrics&apikey=apikey&".Replace("searchlyrics",query));
             var root = JsonConvert.DeserializeObject<Root>(json);
             foreach (var item in root.message.body.TrackList)
             {
+                dict.Add(i, item.track.track_name + " " + item.track.artist_name);
                 Console.WriteLine(i.ToString() + ". " +item.track.track_name + " - " + item.track.artist_name);
                 i++;
             }
+
+            SongChoose(dict);
+
+            //OpenBrowser("https://www.google.com/search?q=searchitem".Replace("searchitem", ValidCode(dict).ToString().Replace(" ", "+")));
         }
-        
+        private static void SongChoose(Dictionary<int, string> dict)
+        {
+            Console.WriteLine("Press 1 to search for a song in browser or other key to leave..\n");
+            string select = Console.ReadLine();
+            switch (select)
+            {
+                case "1":
+                    OpenBrowser("https://www.google.com/search?q=searchitem".Replace("searchitem", ValidCode(dict).ToString().Replace(" ", "+")));
+                    break;
+                default:
+                    Environment.Exit(0);
+                    break;
+            }
+        }
+        public static string ValidCode(Dictionary<int, string> list)
+        {
+            int selection;
+            int mycode;
+            if (list.Count > 1)
+            {
+                Console.Write("Choose a song\n");
+                while (!int.TryParse(Console.ReadLine(), out selection) || selection > list.Count)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write("Wrong value, try again!\n(Choose from the list above)\n");
+                    Console.ResetColor();
+                }
+                bool isInList = list.Keys.ElementAt(selection - 1) == -1;
+                if (isInList)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Theres no song with this code! Try again...");
+                    Console.ResetColor();
+                    ValidCode(list);
+                }
+                return list.Values.ElementAt(selection - 1);
+            }
+            return list.Values.ElementAt(0);
+        }
+
+        public static void OpenBrowser(string url)
+        {
+            try
+            {
+                Process.Start(url);
+            }
+            catch
+            {
+                // hack because of this: https://github.com/dotnet/corefx/issues/10361
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    url = url.Replace("&", "^&");
+                    Process.Start(new ProcessStartInfo("cmd", $"/c start {url}") { CreateNoWindow = true });
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", url);
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    Process.Start("open", url);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
     }
 
 
