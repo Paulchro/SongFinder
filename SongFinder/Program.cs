@@ -91,26 +91,41 @@ namespace SongFinder
         public static async Task Main(string[] args)
         {
             Dictionary<int, string> dict = new Dictionary<int, string>();
-            int i = 1;
             Console.WriteLine("Welcome to my song finder");
             Console.WriteLine("Type part of a song you want to search for\n");
-            string query = Console.ReadLine();
-            var json = new WebClient().DownloadString("https://api.musixmatch.com/ws/1.1/track.search?q_lyrics=searchlyrics&apikey=apikey&".Replace("searchlyrics",query));
-            var root = JsonConvert.DeserializeObject<Root>(json);
-            foreach (var item in root.message.body.TrackList)
-            {
-                dict.Add(i, item.track.track_name + " " + item.track.artist_name);
-                Console.WriteLine(i.ToString() + ". " +item.track.track_name + " - " + item.track.artist_name);
-                i++;
-            }
+            Mainmenu(dict);
 
             SongChoose(dict);
 
             //OpenBrowser("https://www.google.com/search?q=searchitem".Replace("searchitem", ValidCode(dict).ToString().Replace(" ", "+")));
         }
+
+        private static void Mainmenu(Dictionary<int, string> dict)
+        {
+            int i = 1;
+           
+            string query = Console.ReadLine();
+            var json = new WebClient().DownloadString("https://api.musixmatch.com/ws/1.1/track.search?q_lyrics=searchlyrics&apikey=bbd03d6cbd2a351dd6318f9fb3f8948e&".Replace("searchlyrics", query));
+            var root = JsonConvert.DeserializeObject<Root>(json);
+            if (root.message.body.TrackList.Count != 0)
+            {
+                foreach (var item in root.message.body.TrackList)
+                {
+                    dict.Add(i, item.track.track_name + " " + item.track.artist_name);
+                    Console.WriteLine(i.ToString() + ". " + item.track.track_name + " - " + item.track.artist_name);
+                    i++;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Not found, try again");
+                Mainmenu(dict);
+            }
+        }
+
         private static void SongChoose(Dictionary<int, string> dict)
         {
-            Console.WriteLine("Press 1 to search for a song in browser or other key to leave..\n");
+            Console.WriteLine("\nPress 1 to search for a song in browser or other key to leave..\n");
             string select = Console.ReadLine();
             switch (select)
             {
